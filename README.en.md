@@ -1,6 +1,8 @@
 # dsh-my-workspace
 
-A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH) web-GUI plugin: **workspace quick actions**. Every session header gains an "Open workspace" button that opens the current session's project root in any detected IDE, terminal, or file manager — or copies its path with one click. Bilingual UI (English/中文, follows the host locale).
+[中文](README.md)
+
+A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH) web-GUI plugin: **workspace quick actions**. The session header and every workspace row in the left sidebar carry an "Open" entry that launches the project root in any detected IDE, terminal, or file manager — or copies its path with one click; Settings picks the default opener. Bilingual UI (English/中文, follows the host locale).
 
 ## Features
 
@@ -47,11 +49,13 @@ Then **restart `dsh web`** and refresh the page. Installing adds `dsh-my-workspa
 
 ## Custom launchers
 
-The launcher catalog lives in `CATALOG` inside `lib/index.js`: each entry carries a stable `id`, a group (`ide` / `terminal` / `files`), a display label, candidate binary names, and an argv builder. Adding support for another tool is one catalog line — e.g. Sublime Text:
+The launcher catalog lives in `CATALOG` inside `lib/index.js`: each entry carries a stable `id`, a group (`ide` / `terminal` / `files`), a display label, candidate binary names, and an argv builder. Adding support for another tool is one catalog line — e.g. an Emacs daemon:
 
 ```js
-{ id: 'sublime', group: 'ide', label: 'Sublime Text', bins: ['subl'], args: (p) => [p] },
+{ id: 'emacsd', group: 'ide', label: 'Emacs (daemon)', bins: ['emacsclient'], args: (p) => ['-n', p] },
 ```
+
+Tools that should simply be started *inside* the directory rather than handed it as an argument (Warp-style) take `cwdBased: true` with empty `args` — the directory becomes the child's working directory.
 
 ## Development
 
@@ -64,6 +68,7 @@ The repo layout matches the other dsh plugins: `lib/index.js` (host HTTP routes)
 ## Troubleshooting
 
 - The menu shows "The host half is older than this page — restart dsh web" (or, in older builds, the cryptic `Unexpected token '<'`): the browser half updates on page refresh, but host routes need a process restart. **Restarting dsh web fixes it.** The plugin now detects this mismatch and shows a clear localized message instead of a JSON parse error.
+- A sidebar row shows no 📁 button: only true workspace group rows get one (hover reveals both ⋯ and ＋); the ungrouped bucket has no path behind it and is left untouched.
 
 ## License
 

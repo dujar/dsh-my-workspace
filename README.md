@@ -1,6 +1,8 @@
 # dsh-my-workspace
 
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH）web-GUI 插件：**工作区快捷操作**。每个会话页头出现一个「打开工作区」按钮，把当前会话的项目根目录一键在检测到的 IDE / 终端 / 文件管理器中打开，或一键复制路径。中英双语界面（跟随宿主全局语言，zh / en）。
+[English](README.en.md)
+
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH）web-GUI 插件：**工作区快捷操作**。会话页头与左侧工作区分组行各有一个「打开」入口，把项目根目录一键在检测到的 IDE / 终端 / 文件管理器中打开，或一键复制路径；设置页可指定默认打开方式。中英双语界面（跟随宿主全局语言，zh / en）。
 
 ## 功能
 
@@ -47,11 +49,13 @@ dsh plugin --profile web add github:<you>/dsh-my-workspace
 
 ## 自定义启动器
 
-启动器目录内置于 `lib/index.js` 的 `CATALOG`：每项含稳定 `id`、分组（`ide` / `terminal` / `files`）、显示名、候选二进制名与参数构造器。新增一个支持只需加一条目录项 —— 例如 Sublime Text：
+启动器目录内置于 `lib/index.js` 的 `CATALOG`：每项含稳定 `id`、分组（`ide` / `terminal` / `files`）、显示名、候选二进制名与参数构造器。新增一个支持只需加一条目录项 —— 例如 Emacs daemon：
 
 ```js
-{ id: 'sublime', group: 'ide', label: 'Sublime Text', bins: ['subl'], args: (p) => [p] },
+{ id: 'emacsd', group: 'ide', label: 'Emacs (daemon)', bins: ['emacsclient'], args: (p) => ['-n', p] },
 ```
+
+不需要「传路径参数」、只要在目标目录里启动的工具（如 Warp），加 `cwdBased: true` 并让 `args` 返回空数组即可 —— 目录会作为子进程的工作目录传入。
 
 ## 开发
 
@@ -59,11 +63,12 @@ dsh plugin --profile web add github:<you>/dsh-my-workspace
 npm test        # 宿主半 + 浏览器半冒烟测试（spawn 已打桩，不会真启动任何程序）
 ```
 
+仓库结构与其他 dsh 插件一致：`lib/index.js`（宿主半 HTTP 路由）、`lib/client.js`（零构建 ModuleLoader 浏览器半）、`cordis.patch.yml`（bundle 挂载补丁）、`test/`。
+
 ## 故障排查
 
 - 菜单里出现「宿主半落后于当前页面——请重启 dsh web」（或旧版本的 `Unexpected token '<'`）：浏览器半随页面刷新即更新，宿主半要进程重启才加载新路由——**重启 dsh web 即可**。插件现在会把这种不匹配识别为明确的本地化提示，而不是 JSON 解析错误。
-
-仓库结构与其他 dsh 插件一致：`lib/index.js`（宿主半 HTTP 路由）、`lib/client.js`（零构建 ModuleLoader 浏览器半）、`cordis.patch.yml`（bundle 挂载补丁）、`test/`。
+- 侧栏行按钮点了没反应：确认该行是真正的工作区分组行（悬停后同时有 ⋯ 和 ＋）；「未分组」桶背后没有路径，不会注入按钮。
 
 ## License
 
