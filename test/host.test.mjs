@@ -55,11 +55,28 @@ const mod = await import('../lib/index.js')
 }
 
 // ---------------------------------------------------------------------------
+// Launcher catalog sanity
+// ---------------------------------------------------------------------------
+{
+  const ids = mod.CATALOG.map((e) => e.id)
+  assert.equal(new Set(ids).size, ids.length, 'catalog ids are unique')
+  assert.ok(ids.every((id) => typeof id === 'string' && /^[a-z0-9-]+$/.test(id)), 'ids are route-safe')
+  for (const wanted of ['vscode', 'cursor', 'antigravity', 'zcode', 'berd', 'orca', 'trae', 'kiro', 'void', 'warp', 'ghostty']) {
+    assert.ok(ids.includes(wanted), 'catalog carries ' + wanted)
+  }
+  // every entry builds args from a path without throwing
+  for (const entry of mod.CATALOG) {
+    assert.doesNotThrow(() => entry.args('/tmp/proj'), entry.id + ' args builder works')
+    assert.ok(Array.isArray(entry.args('/tmp/proj')), entry.id + ' args is an array')
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Detection against a fake PATH
 // ---------------------------------------------------------------------------
 const fakeBin = join(tmp, 'bin')
 mkdirSync(fakeBin)
-for (const name of ['code', 'gnome-terminal', 'xdg-open', 'nautilus']) {
+for (const name of ['code', 'gnome-terminal', 'xdg-open', 'nautilus', 'warp']) {
   const p = join(fakeBin, name)
   writeFileSync(p, '#!/bin/sh\n')
   chmodSync(p, 0o755)
@@ -201,6 +218,12 @@ mod.resetDetectCache()
   await post('/dsh-my-workspace/open', { target: 'nautilus', path: projectDir })
   assert.equal(spawned.bin, join(fakeBin, 'nautilus'))
   assert.deepEqual(spawned.args, [projectDir])
+
+  // cwd-based targets (Warp) launch plain and inherit the directory
+  spawned = null
+  await post('/dsh-my-workspace/open', { target: 'warp', path: projectDir })
+  assert.deepEqual(spawned.args, [])
+  assert.equal(spawned.options.cwd, projectDir)
 }
 
 // rejections: relative path, unknown target, missing directory, absent launcher, untrusted

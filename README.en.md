@@ -5,8 +5,8 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH) web-
 ## Features
 
 - **Session-header quick actions** — reads the current session's workspace (project root) and opens a menu with:
-  - **Editors & IDEs** — auto-probed from this machine's PATH: VS Code, VS Code Insiders, VSCodium, Cursor, Windsurf, Zed, IntelliJ IDEA, PyCharm, WebStorm, CLion, GoLand, Rider, PhpStorm, RubyMine, DataGrip, Fleet;
-  - **Terminals** — Linux: GNOME Terminal, Konsole, Xfce Terminal, Tilix, Alacritty, kitty, WezTerm; macOS: Terminal.app and iTerm (via osascript); Windows: Windows Terminal;
+  - **Editors & IDEs** — auto-probed from this machine's PATH: VS Code, VS Code Insiders, VSCodium, Cursor, Windsurf, Zed, Antigravity, Trae, Kiro, Void, IntelliJ IDEA, PyCharm, WebStorm, CLion, GoLand, Rider, PhpStorm, RubyMine, DataGrip, Fleet, Sublime Text, plus community picks like ZCode / Berd / Orca;
+  - **Terminals** — Linux: GNOME Terminal, Konsole, Xfce Terminal, Tilix, Alacritty, kitty, WezTerm, Ghostty; cross-platform: Warp (launched plain with the directory as the child cwd); macOS: Terminal.app and iTerm (via osascript); Windows: Windows Terminal;
   - **File managers** — Linux: xdg-open / Nautilus / Dolphin; macOS: Finder; Windows: Explorer;
   - **Copy path** — writes straight to the browser clipboard (secure localhost context) with a ✓ feedback, no host round-trip.
 - **Sidebar workspace-row "Open" button** — every workspace group row in the left panel gains a 📁 button beside its hover-revealed kebab + new-session buttons: clicking resolves that workspace's durable path (via the host `workspaceRegistry`) and opens the same launcher menu anchored at the row; click the same button again to dismiss. The ungrouped bucket (no path behind it) is left untouched.
@@ -60,6 +60,10 @@ npm test        # host-half + browser-half smoke tests (spawn is stubbed)
 ```
 
 The repo layout matches the other dsh plugins: `lib/index.js` (host HTTP routes), `lib/client.js` (zero-build ModuleLoader browser half), `cordis.patch.yml` (bundle mount patch), `test/`.
+
+## Troubleshooting
+
+- The menu shows "The host half is older than this page — restart dsh web" (or, in older builds, the cryptic `Unexpected token '<'`): the browser half updates on page refresh, but host routes need a process restart. **Restarting dsh web fixes it.** The plugin now detects this mismatch and shows a clear localized message instead of a JSON parse error.
 
 ## License
 

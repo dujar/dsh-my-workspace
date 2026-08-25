@@ -5,8 +5,8 @@
 ## 功能
 
 - **会话页头快捷按钮** — 读取当前会话的工作区（项目根目录），点开弹出菜单：
-  - **编辑器与 IDE** — 自动探测本机 PATH 上可用的启动器：VS Code、VS Code Insiders、VSCodium、Cursor、Windsurf、Zed、IntelliJ IDEA、PyCharm、WebStorm、CLion、GoLand、Rider、PhpStorm、RubyMine、DataGrip、Fleet；
-  - **终端** — Linux：GNOME Terminal、Konsole、Xfce Terminal、Tilix、Alacritty、kitty、WezTerm；macOS：Terminal.app 与 iTerm（osascript）；Windows：Windows Terminal；
+  - **编辑器与 IDE** — 自动探测本机 PATH 上可用的启动器：VS Code、VS Code Insiders、VSCodium、Cursor、Windsurf、Zed、Antigravity、Trae、Kiro、Void、IntelliJ IDEA、PyCharm、WebStorm、CLion、GoLand、Rider、PhpStorm、RubyMine、DataGrip、Fleet、Sublime Text，以及 ZCode / Berd / Orca 等社区新贵；
+  - **终端** — Linux：GNOME Terminal、Konsole、Xfce Terminal、Tilix、Alacritty、kitty、WezTerm、Ghostty；跨平台：Warp（以工作目录为子进程 cwd 启动）；macOS：Terminal.app 与 iTerm（osascript）；Windows：Windows Terminal；
   - **文件管理器** — Linux：xdg-open / Nautilus / Dolphin；macOS：Finder；Windows：Explorer；
   - **复制路径** — 直接写入浏览器剪贴板（localhost 安全上下文），带「已复制 ✓」反馈，不经宿主往返。
 - **左侧工作区行「打开」按钮** — 左侧面板每个工作区分组行在悬停出的操作簇（⋯ 菜单、＋ 新会话）旁多一个 📁 打开按钮：点击即解析该工作区的持久化路径（宿主 `workspaceRegistry`），弹出同样的「打开方式」菜单；再次点击同一按钮收起。未分组桶（背后无路径）不注入。
@@ -58,6 +58,10 @@ dsh plugin --profile web add github:<you>/dsh-my-workspace
 ```sh
 npm test        # 宿主半 + 浏览器半冒烟测试（spawn 已打桩，不会真启动任何程序）
 ```
+
+## 故障排查
+
+- 菜单里出现「宿主半落后于当前页面——请重启 dsh web」（或旧版本的 `Unexpected token '<'`）：浏览器半随页面刷新即更新，宿主半要进程重启才加载新路由——**重启 dsh web 即可**。插件现在会把这种不匹配识别为明确的本地化提示，而不是 JSON 解析错误。
 
 仓库结构与其他 dsh 插件一致：`lib/index.js`（宿主半 HTTP 路由）、`lib/client.js`（零构建 ModuleLoader 浏览器半）、`cordis.patch.yml`（bundle 挂载补丁）、`test/`。
 
