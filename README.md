@@ -9,6 +9,7 @@
   - **终端** — Linux：GNOME Terminal、Konsole、Xfce Terminal、Tilix、Alacritty、kitty、WezTerm；macOS：Terminal.app 与 iTerm（osascript）；Windows：Windows Terminal；
   - **文件管理器** — Linux：xdg-open / Nautilus / Dolphin；macOS：Finder；Windows：Explorer；
   - **复制路径** — 直接写入浏览器剪贴板（localhost 安全上下文），带「已复制 ✓」反馈，不经宿主往返。
+- **左侧工作区行「打开」按钮** — 左侧面板每个工作区分组行在悬停出的操作簇（⋯ 菜单、＋ 新会话）旁多一个 📁 打开按钮：点击即解析该工作区的持久化路径（宿主 `workspaceRegistry`），弹出同样的「打开方式」菜单；再次点击同一按钮收起。未分组桶（背后无路径）不注入。
 - **默认打开方式** — 设置 → 工作区 中可将任一可用启动器设为默认；快捷菜单里以圆点标记。
 - **按需探测与缓存** — 启动器列表通过扫描 PATH 得到，宿主侧缓存 10 秒；安装新工具后可在设置页手动重新扫描。
 - **安全** — 所有路由沿用 dsh-restart / dsh-trader 的 fail-closed 同源 + localhost 信任校验；打开目录前校验绝对路径存在且为目录；启动子进程 detached + stdio ignore，不经过 shell，DSH 进程绝不持有其管道。
@@ -32,13 +33,15 @@ dsh plugin --profile web add github:<you>/dsh-my-workspace
 1. 打开任意会话，页头标题右侧出现 📁 按钮（无工作区的空白会话自动隐藏）。
 2. 点按钮展开菜单：按「编辑器与 IDE / 终端 / 文件管理器」分组列出本机检测到的启动器，点击即在项目根目录打开；顶部以等宽字体显示完整路径。
 3. **复制路径** 一键把项目根目录写入剪贴板。
-4. 打开 **设置 → 工作区** 可将常用启动器设为默认（菜单中圆点标记），或安装新工具后 **重新扫描**。
+4. 左侧面板把鼠标悬停到任意工作区分组行：⋯ 与 ＋ 旁边出现 📁 按钮，点击即用同样的菜单在该工作区打开（再点一次收起）。
+5. 打开 **设置 → 工作区** 可将常用启动器设为默认（菜单中圆点标记），或安装新工具后 **重新扫描**。
 
 ## 路由（宿主半）
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/dsh-my-workspace/state` | 平台、探测到的启动器列表（含可用性与二进制路径）、偏好设置 |
+| GET | `/dsh-my-workspace/workspaces` | 已注册工作区的 id / 标题 / 规范化路径（仅叶子字段，供侧栏行按钮解析） |
 | POST | `/dsh-my-workspace/open` | body `{ target, path }`：校验后在目标启动器中打开该目录（detached spawn，无 shell） |
 | POST | `/dsh-my-workspace/settings` | body `{ defaultTarget }`：持久化默认启动器到 `$DSH_HOME/dsh-my-workspace/settings.json` |
 

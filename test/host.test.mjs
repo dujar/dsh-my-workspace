@@ -99,8 +99,16 @@ mod.resetDetectCache()
 // Routes
 // ---------------------------------------------------------------------------
 mod.resetDetectCache()
-const routes = {}
-mod.apply({ effect: (fn) => { fn(); return () => {} }, webServer: { register: (def) => { routes[def.path] = def; return () => {} } } })
+function mount(ctxGet) {
+  const map = {}
+  mod.apply({
+    effect: (fn) => { fn(); return () => {} },
+    get: ctxGet || (() => undefined),
+    webServer: { register: (def) => { map[def.path] = def; return () => {} } },
+  })
+  return map
+}
+const routes = mount()
 
 function fakeReq(methodOrHeaders, headersOrBody, url, body) {
   if (typeof methodOrHeaders === 'object' && methodOrHeaders !== null) {
@@ -233,6 +241,35 @@ for (const [name, body, code] of [
   // unknown ids reject
   res = await post('/dsh-my-workspace/settings', { defaultTarget: 'bogus' })
   assert.equal(res.status, 400)
+}
+
+// ---- GET /workspaces ---------------------------------------------------------
+{
+  // Without a workspaceRegistry the route degrades to an empty list.
+  const res = await get('/dsh-my-workspace/workspaces')
+  assert.equal(res.status, 200)
+  assert.deepEqual(JSON.parse(res.body), { workspaces: [] })
+
+  const bad = await get('/dsh-my-workspace/workspaces', evil)
+  assert.equal(bad.status, 403)
+
+  // With one, only the id/title/path leaves are exposed, entries without a
+  // path are skipped, ids are coerced to strings, and output sorts by title.
+  const wsRoutes = mount(() => ({
+    list: () => [
+      { id: 7, title: 'zebra', path: '/work/zebra' },
+      { id: 'abc', title: 'alpha', path: '/work/alpha', createdAt: 1, updatedAt: 2, sessionIds: ['s1'], record: { secret: true } },
+      { id: 'x', title: 'no-path' },
+    ],
+  }))
+  const res2 = fakeRes()
+  await wsRoutes['/dsh-my-workspace/workspaces'].handler(mkReq('GET', local, '/dsh-my-workspace/workspaces'), res2)
+  assert.equal(res2.status, 200)
+  const body = JSON.parse(res2.body)
+  assert.deepEqual(body.workspaces, [
+    { id: 'abc', title: 'alpha', path: '/work/alpha' },
+    { id: '7', title: 'zebra', path: '/work/zebra' },
+  ])
 }
 
 console.log('host.test.mjs: all assertions passed')

@@ -43,12 +43,32 @@ assert.deepEqual(mod.inject, ['slots', 'locale'])
 assert.equal(typeof mod.apply, 'function')
 assert.equal(typeof mod.WorkspaceMenuButton, 'function')
 assert.equal(typeof mod.WorkspaceSettingsSection, 'function')
+assert.equal(typeof mod.WorkspaceRowOverlay, 'function')
+assert.equal(typeof mod.resolveWorkspacePath, 'function')
+
+// Sidebar label → workspace path resolution: exact title first, then unique
+// basename fallback, else null.
+const wsList = [
+  { id: 'a', title: 'hermes', path: '/work/hermes' },
+  { id: 'b', title: 'My Project', path: '/deep/My Project' },
+]
+assert.equal(mod.resolveWorkspacePath('hermes', wsList), '/work/hermes')
+assert.equal(mod.resolveWorkspacePath('My Project', wsList), '/deep/My Project')
+assert.equal(mod.resolveWorkspacePath('project', wsList), null, 'basename cannot override a title miss')
+assert.equal(
+  mod.resolveWorkspacePath('other', [{ id: 'c', title: '', path: '/work/other' }]),
+  '/work/other',
+  'basename fallback hits untitled workspaces',
+)
+assert.equal(mod.resolveWorkspacePath('', wsList), null)
+assert.equal(mod.resolveWorkspacePath('x', undefined), null)
 
 // Styles are exported for theming checks and must be theme-token driven.
 assert.ok(Array.isArray(mod.styles), 'styles are exported for theming checks')
 assert.ok(mod.styles.some((s) => s.startsWith('.dshmws-menu{')), 'menu style present')
 assert.ok(mod.styles.some((s) => s.includes('--dsw-alias-bg-layer-1')), 'menu background follows the theme token')
 assert.ok(mod.styles.some((s) => s.startsWith('.dshmws-trigger')), 'trigger style present')
+assert.ok(mod.styles.some((s) => s.startsWith('.dshmws-rowbtn{')), 'sidebar row trigger style present')
 
 // i18n parity: the host locale service rejects unbalanced dictionaries.
 const en = Object.keys(mod.strings.en).sort()
@@ -92,11 +112,14 @@ mod.apply({
 
 assert.ok(injected.includes('conversation.session.header.actions'), 'header quick actions seat used')
 assert.ok(injected.includes('settings.section'), 'settings section seat used')
+assert.ok(injected.includes('shell.overlay'), 'frame overlay seat used for the row menu')
 const headerReg = registered.find((r) => r.name === 'conversation.session.header.actions' && r.id)
 assert.equal(headerReg && headerReg.id, 'workspace-actions')
 const sectionReg = registered.find((r) => r.name === 'settings.section' && r.id)
 assert.equal(sectionReg && sectionReg.id, 'my-workspace')
-assert.ok(effects >= 1, 'dictionaries registered inside ctx.effect')
+const overlayReg = registered.find((r) => r.name === 'shell.overlay' && r.id)
+assert.equal(overlayReg && overlayReg.id, 'workspace-row-menu')
+assert.ok(effects >= 2, 'dictionaries and sidebar row-button mount run inside ctx.effect')
 
 // The bundle must never reference Node-only globals or JSX.
 const code = readFileSync(clientPath, 'utf8')
