@@ -76,6 +76,16 @@ assert.equal(
 assert.equal(mod.resolveWorkspacePath('', wsList), null)
 assert.equal(mod.resolveWorkspacePath('x', undefined), null)
 
+// Settings-nav glyph patch wiring: exported matcher + mount lifecycle.
+assert.equal(typeof mod.mountSettingsNavGlyph, 'function')
+assert.equal(typeof mod.isWorkspaceNavLabel, 'function')
+assert.equal(mod.isWorkspaceNavLabel('Workspace'), true)
+assert.equal(mod.isWorkspaceNavLabel('\u5de5\u4f5c\u533a'), true)
+assert.equal(mod.isWorkspaceNavLabel('Workspace \u00b7 extras'), true)
+assert.equal(mod.isWorkspaceNavLabel('Restart \u91cd\u542f'), false)
+assert.equal(mod.isWorkspaceNavLabel(''), false)
+assert.equal(mod.isWorkspaceNavLabel(null), false)
+
 // Styles are exported for theming checks and must be theme-token driven.
 assert.ok(Array.isArray(mod.styles), 'styles are exported for theming checks')
 assert.ok(mod.styles.some((s) => s.startsWith('.dshmws-menu{')), 'menu style present')
