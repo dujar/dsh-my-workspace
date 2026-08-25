@@ -1,7 +1,7 @@
 {
   "name": "dsh-my-workspace",
-  "description": "Workspace quick actions for the DeepSeek Harness web GUI: open the current session's project root in any detected IDE (VS Code, Cursor, JetBrains…), a native terminal, or the system file manager, and copy its path with one click. Bilingual (English/中文) UI. 工作区快捷操作：把当前会话的项目根目录一键在检测到的 IDE（VS Code、Cursor、JetBrains…）、原生终端或系统文件管理器中打开，并一键复制路径。中英双语界面。",
-  "version": "0.1.0",
+  "description": "Workspace quick actions for the DeepSeek Harness web GUI: open the current session's project root in any detected IDE (VS Code, Cursor, JetBrains…), a native terminal, or the system file manager, copy its path with one click, and run shell commands in a header-unfolded quick terminal (close stops them; trailing & backgrounds them). Bilingual (English/中文) UI. 工作区快捷操作：把当前会话的项目根目录一键在检测到的 IDE（VS Code、Cursor、JetBrains…）、原生终端或系统文件管理器中打开，并一键复制路径；页头 >_ 展开快捷终端就地运行命令（关闭即停止，& 结尾转后台）。中英双语界面。",
+  "version": "0.2.0",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -24,7 +24,7 @@
   "dshhub": {
     "schemaVersion": 1,
     "displayName": "dsh-my-workspace",
-    "summary": "Open the current session's workspace in any detected IDE, terminal, or file manager; copy its path. One button in every session header.",
+    "summary": "Open the current session's workspace in any detected IDE, terminal, or file manager; copy its path; run commands in a header-unfolded quick terminal. One folder button and one >_ button in every session header.",
     "categories": [
       "效率",
       "Web UI"
@@ -60,6 +60,8 @@
     "vscode",
     "jetbrains",
     "terminal",
+    "quick-terminal",
+    "shell",
     "file-manager",
     "i18n",
     "bilingual",
@@ -68,6 +70,14 @@
   ],
   "license": "MIT",
   "author": "bitslicer",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dujar/dsh-my-workspace.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dujar/dsh-my-workspace/issues"
+  },
+  "homepage": "https://github.com/dujar/dsh-my-workspace#readme",
   "engines": {
     "node": ">=20"
   },

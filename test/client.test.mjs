@@ -45,6 +45,19 @@ assert.equal(typeof mod.WorkspaceMenuButton, 'function')
 assert.equal(typeof mod.WorkspaceSettingsSection, 'function')
 assert.equal(typeof mod.WorkspaceRowOverlay, 'function')
 assert.equal(typeof mod.resolveWorkspacePath, 'function')
+assert.equal(typeof mod.TerminalButton, 'function')
+assert.equal(typeof mod.TermPanel, 'function')
+assert.ok(mod.termStore && typeof mod.termStore === 'object', 'terminal store exported')
+
+// Trailing-& parsing mirrors the host's normalization: the UI annotates a
+// background run instantly, without waiting for the response.
+assert.deepEqual(mod.splitTrailingAmp('ls -la'), { cmd: 'ls -la', background: false })
+assert.deepEqual(mod.splitTrailingAmp('sleep 5 &'), { cmd: 'sleep 5', background: true })
+assert.deepEqual(mod.splitTrailingAmp('  make  & '), { cmd: '  make', background: true })
+assert.equal(mod.splitTrailingAmp('echo &&').cmd, 'echo')
+assert.equal(mod.splitTrailingAmp('echo &&').background, true)
+assert.equal(mod.splitTrailingAmp('   '), null)
+assert.equal(mod.splitTrailingAmp(null), null)
 
 // Sidebar label → workspace path resolution: exact title first, then unique
 // basename fallback, else null.
@@ -69,11 +82,23 @@ assert.ok(mod.styles.some((s) => s.startsWith('.dshmws-menu{')), 'menu style pre
 assert.ok(mod.styles.some((s) => s.includes('--dsw-alias-bg-layer-1')), 'menu background follows the theme token')
 assert.ok(mod.styles.some((s) => s.startsWith('.dshmws-trigger')), 'trigger style present')
 assert.ok(mod.styles.some((s) => s.startsWith('.dshmws-rowbtn{')), 'sidebar row trigger style present')
+assert.ok(mod.styles.some((s) => s.startsWith('.dshmws-term{')), 'terminal panel style present')
+assert.ok(
+  mod.styles.some((s) => s.includes('--dsw-alias-bg-layer-1') && s.includes('.dshmws-term')),
+  'terminal panel follows the theme tokens too',
+)
+assert.ok(
+  mod.styles.some((s) => s.includes('prefers-reduced-motion') && s.includes('.dshmws-term')),
+  'the unfold animation respects reduced motion',
+)
 
 // i18n parity: the host locale service rejects unbalanced dictionaries.
 const en = Object.keys(mod.strings.en).sort()
 const zh = Object.keys(mod.strings.zh).sort()
 assert.deepEqual(en, zh, 'en/zh dictionaries have identical key sets')
+for (const key of ['termTitle', 'termRunLabel', 'termStop', 'termBgToggle', 'termEmptyHint']) {
+  assert.ok(en.includes(key), 'dictionary carries ' + key)
+}
 
 // apply() registers both seats through the slots service, inside ctx.effect.
 const registered = []
@@ -115,6 +140,8 @@ assert.ok(injected.includes('settings.section'), 'settings section seat used')
 assert.ok(injected.includes('shell.overlay'), 'frame overlay seat used for the row menu')
 const headerReg = registered.find((r) => r.name === 'conversation.session.header.actions' && r.id)
 assert.equal(headerReg && headerReg.id, 'workspace-actions')
+const terminalReg = registered.find((r) => r.name === 'conversation.session.header.actions' && r.id === 'workspace-terminal')
+assert.ok(terminalReg, 'the quick terminal registers beside the launcher menu')
 const sectionReg = registered.find((r) => r.name === 'settings.section' && r.id)
 assert.equal(sectionReg && sectionReg.id, 'my-workspace')
 const overlayReg = registered.find((r) => r.name === 'shell.overlay' && r.id)
