@@ -1,0 +1,8 @@
+# dsh-my-workspace bundle patch
+#
+# Mounts the host half (the /dsh-my-workspace/* HTTP routes) into the web profile.
+# The browser half is discovered automatically through the `dsh.client`
+# declaration in package.json.
+- insert:
+    - id: my-workspace
+      name: 'dsh-my-workspace'

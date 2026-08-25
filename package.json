@@ -1,0 +1,78 @@
+{
+  "name": "dsh-my-workspace",
+  "description": "Workspace quick actions for the DeepSeek Harness web GUI: open the current session's project root in any detected IDE (VS Code, Cursor, JetBrains…), a native terminal, or the system file manager, and copy its path with one click. Bilingual (English/中文) UI. 工作区快捷操作：把当前会话的项目根目录一键在检测到的 IDE（VS Code、Cursor、JetBrains…）、原生终端或系统文件管理器中打开，并一键复制路径。中英双语界面。",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "dshhub": {
+    "schemaVersion": 1,
+    "displayName": "dsh-my-workspace",
+    "summary": "Open the current session's workspace in any detected IDE, terminal, or file manager; copy its path. One button in every session header.",
+    "categories": [
+      "效率",
+      "Web UI"
+    ],
+    "surfaces": [
+      "host",
+      "web"
+    ],
+    "capabilities": {
+      "provides": []
+    },
+    "compatibility": {
+      "dsh": ">=0.1.0-rc.5",
+      "node": ">=20"
+    },
+    "permissions": {}
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "scripts": {
+    "test": "node test/host.test.mjs && node test/client.test.mjs"
+  },
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "client-plugin",
+    "workspace",
+    "open-in-ide",
+    "vscode",
+    "jetbrains",
+    "terminal",
+    "file-manager",
+    "i18n",
+    "bilingual",
+    "zh",
+    "en"
+  ],
+  "license": "MIT",
+  "author": "bitslicer",
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "@deepseek-ai/cordis": "^4.0.1"
+  }
+}
