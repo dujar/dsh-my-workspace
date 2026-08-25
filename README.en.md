@@ -11,6 +11,8 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH) web-
   - **Terminals** — Linux: GNOME Terminal, Konsole, Xfce Terminal, Tilix, Alacritty, kitty, WezTerm, Ghostty; cross-platform: Warp (launched plain with the directory as the child cwd); macOS: Terminal.app and iTerm (via osascript); Windows: Windows Terminal;
   - **File managers** — Linux: xdg-open / Nautilus / Dolphin; macOS: Finder; Windows: Explorer;
   - **Copy path** — writes straight to the browser clipboard (secure localhost context) with a ✓ feedback, no host round-trip.
+- **Subdirectories and files, any depth** — the open target is no longer limited to the root: project root, directories nested any number of levels down, or an individual file all work. Behavior adapts per launcher kind: editors receive the exact path; terminals sit in the path's nearest directory (a file opens its parent); file managers reveal/select files — macOS `open -R`, Windows `explorer /select,`, Linux via org.freedesktop.FileManager1.ShowItems (gdbus or dbus-send auto-picked), falling back to the parent directory when neither exists.
+- **`workspace_open` agent tool** — registers a model tool so you can simply ask "open src/lib/deep/mod.js in Cursor". Parameters: `path` (absolute, required) and `target` (optional launcher id; defaults to your configured default opener, then the first detected IDE). The tool shares one open implementation with the HTTP routes.
 - **Sidebar workspace-row "Open" button** — every workspace group row in the left panel gains a 📁 button beside its hover-revealed kebab + new-session buttons: clicking resolves that workspace's durable path (via the host `workspaceRegistry`) and opens the same launcher menu anchored at the row; click the same button again to dismiss. The ungrouped bucket (no path behind it) is left untouched.
 - **Default opener** — pick any available launcher as the default under Settings → Workspace; it is marked with a dot in the quick-actions menu.
 - **Lazy probing with a cache** — launchers are probed by scanning PATH, cached host-side for 10 s; rescan manually from the settings page after installing a new tool.
@@ -37,6 +39,7 @@ Then **restart `dsh web`** and refresh the page. Installing adds `dsh-my-workspa
 3. **Copy path** puts the project root on your clipboard.
 4. Hover any workspace group row in the left panel: a 📁 button appears beside ⋯ and ＋ — click to open that workspace with the same menu (click again to dismiss).
 5. Open **Settings → Workspace** to set a default opener (dot-marked in the menu), or **Rescan** after installing new tools.
+6. Ask the assistant right in a session — e.g. "open src/lib/deep/mod.js in vscode" or "open this project's docs directory in a terminal" — and it completes the request through the `workspace_open` tool; nested subdirectories and single files included.
 
 ## Routes (host half)
 
@@ -44,7 +47,7 @@ Then **restart `dsh web`** and refresh the page. Installing adds `dsh-my-workspa
 | --- | --- | --- |
 | GET | `/dsh-my-workspace/state` | Platform, detected launchers (availability + binary path), preferences |
 | GET | `/dsh-my-workspace/workspaces` | Registered workspaces as id / title / canonical path leaves (backs the sidebar row buttons) |
-| POST | `/dsh-my-workspace/open` | body `{ target, path }`: validates then opens the directory in the target launcher (detached spawn, no shell) |
+| POST | `/dsh-my-workspace/open` | body `{ target, path }`: `path` may be the project root, any nested subdirectory, or a single file; validated then opened per launcher semantics (detached spawn, no shell) |
 | POST | `/dsh-my-workspace/settings` | body `{ defaultTarget }`: persists the default launcher to `$DSH_HOME/dsh-my-workspace/settings.json` |
 
 ## Custom launchers

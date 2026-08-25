@@ -24,6 +24,33 @@ const mod = await import('../lib/index.js')
   assert.equal(mod.normalizeTargetPath(42), null)
   assert.equal(mod.normalizeTargetPath('a\0b'), null)
   assert.equal(mod.normalizeTargetPath('/' + 'x'.repeat(5000)), null)
+
+  // kind detection over real fs entries
+  const probeFile = join(tmp, 'probe.txt')
+  writeFileSync(probeFile, 'x\n')
+  assert.equal(await mod.pathKind(tmp), 'dir')
+  assert.equal(await mod.pathKind(probeFile), 'file')
+  await assert.rejects(() => mod.pathKind(join(tmp, 'nope')), 'missing paths reject')
+
+  // terminals always sit in a directory
+  assert.equal(mod.terminalDirFor('/a/b/c.js', 'file'), '/a/b')
+  assert.equal(mod.terminalDirFor('/a/b', 'dir'), '/a/b')
+
+  // native reveal verbs
+  assert.deepEqual(mod.fileRevealFor('darwin', '/a/f.txt').args, ['-R', '/a/f.txt'])
+  assert.deepEqual(mod.fileRevealFor('win32', 'C:\\a\\f.txt').args, ['/select,C:\\a\\f.txt'])
+  assert.equal(mod.fileRevealFor('linux', '/a/f.txt'), null, 'linux goes through the freedesktop DBus probe')
+
+  // org.freedesktop.FileManager1.ShowItems argv shapes
+  const g = mod.showItemsArgv('gdbus', 'file:///a/f.txt')
+  assert.equal(g[0], 'call')
+  assert.ok(g.includes('org.freedesktop.FileManager1.ShowItems'))
+  assert.equal(g[g.length - 2], '["file:///a/f.txt"]', 'GVariant array of URIs')
+  assert.equal(g[g.length - 1], '')
+  const d = mod.showItemsArgv('dbus-send', 'file:///a/f.txt')
+  assert.ok(d.includes('array:string:file:///a/f.txt'))
+  assert.ok(d.includes('--type=method_call'))
+  assert.equal(mod.showItemsArgv('other', 'x'), null)
 }
 
 // ---------------------------------------------------------------------------
@@ -167,6 +194,11 @@ const evil = { host: 'evil.example', origin: 'https://evil.example' }
 
 const projectDir = join(tmp, 'project')
 mkdirSync(projectDir)
+// a file buried several levels under the project root
+const deepDir = join(projectDir, 'src', 'lib', 'deep')
+mkdirSync(deepDir, { recursive: true })
+const deepFile = join(deepDir, 'mod.js')
+writeFileSync(deepFile, 'export {}\n')
 
 // ---- GET /state -------------------------------------------------------------
 {
@@ -208,12 +240,42 @@ mod.resetDetectCache()
   assert.equal(spawned.options.stdio, 'ignore')
   assert.equal(JSON.parse(res.body).ok, true)
 
+  // a FILE many levels under the project opens exactly in the IDE
+  spawned = null
+  const fileRes = await post('/dsh-my-workspace/open', { target: 'vscode', path: deepFile })
+  assert.equal(fileRes.status, 200)
+  assert.deepEqual(spawned.args, [deepFile])
+  const fileBody = JSON.parse(fileRes.body)
+  assert.equal(fileBody.kind, 'file')
+
+  // terminal + file: sits in the file's directory (multi levels down)
+  spawned = null
+  await post('/dsh-my-workspace/open', { target: 'gnome-terminal', path: deepFile })
+  assert.deepEqual(spawned.args, ['--working-directory=' + deepDir])
+
+  // file manager + file without any DBus tool on PATH: opens the parent dir
+  spawned = null
+  await post('/dsh-my-workspace/open', { target: 'nautilus', path: deepFile })
+  assert.equal(spawned.bin, join(fakeBin, 'nautilus'))
+  assert.deepEqual(spawned.args, [deepDir])
+
+  // with gdbus present the freedesktop reveal verb selects the file instead
+  writeFileSync(join(fakeBin, 'gdbus'), '#!/bin/sh\n')
+  chmodSync(join(fakeBin, 'gdbus'), 0o755)
+  spawned = null
+  const revealRes = await post('/dsh-my-workspace/open', { target: 'nautilus', path: deepFile })
+  assert.equal(revealRes.status, 200)
+  assert.equal(spawned.bin, join(fakeBin, 'gdbus'))
+  assert.ok(JSON.stringify(spawned.args).includes('org.freedesktop.FileManager1.ShowItems'), 'reveal method called')
+  assert.ok(JSON.stringify(spawned.args).includes('file://'), 'file URI passed')
+  assert.equal(JSON.parse(revealRes.body).revealed, true)
+
   // terminal target carries its working-directory flag
   spawned = null
   await post('/dsh-my-workspace/open', { target: 'gnome-terminal', path: projectDir })
   assert.deepEqual(spawned.args, ['--working-directory=' + projectDir])
 
-  // file manager target
+  // file manager + directory target
   spawned = null
   await post('/dsh-my-workspace/open', { target: 'nautilus', path: projectDir })
   assert.equal(spawned.bin, join(fakeBin, 'nautilus'))
@@ -226,11 +288,11 @@ mod.resetDetectCache()
   assert.equal(spawned.options.cwd, projectDir)
 }
 
-// rejections: relative path, unknown target, missing directory, absent launcher, untrusted
+// rejections: relative path, unknown target, missing path, absent launcher, untrusted
 for (const [name, body, code] of [
   ['relative path', { target: 'vscode', path: 'relative/dir' }, 400],
   ['unknown target', { target: 'nope', path: projectDir }, 400],
-  ['missing dir', { target: 'vscode', path: join(tmp, 'no-such-dir') }, 400],
+  ['missing path', { target: 'vscode', path: join(tmp, 'no-such-thing') }, 400],
 ]) {
   const res = await post('/dsh-my-workspace/open', body)
   assert.equal(res.status, code, name + ' rejected with ' + code)
@@ -293,6 +355,70 @@ for (const [name, body, code] of [
     { id: 'abc', title: 'alpha', path: '/work/alpha' },
     { id: '7', title: 'zebra', path: '/work/zebra' },
   ])
+}
+
+// ---- workspace_open model tool -------------------------------------------------
+{
+  const toolDefs = []
+  mount((key) => key === 'tools'
+    ? { register: (def) => { toolDefs.push(def); return () => {} } }
+    : undefined)
+  assert.equal(toolDefs.length, 1, 'one tool registered when a tools service exists')
+  const wsOpen = toolDefs[0]
+  assert.equal(wsOpen.name, 'workspace_open')
+  assert.deepEqual(wsOpen.parameters.required, ['path'])
+  assert.equal(typeof wsOpen.execute, 'function')
+
+  // default opener resolves to the first available IDE (vscode on fake PATH)
+  spawned = null
+  const r1 = await wsOpen.execute({ path: deepFile })
+  assert.equal(r1.ok, true)
+  assert.equal(spawned.bin, join(fakeBin, 'code'))
+  assert.deepEqual(spawned.args, [deepFile])
+  assert.match(r1.text, /Opened/)
+  assert.match(r1.text, /vscode/)
+
+  // explicit terminal target on a file sits in its directory
+  spawned = null
+  const r2 = await wsOpen.execute({ path: deepFile, target: 'gnome-terminal' })
+  assert.equal(r2.ok, true)
+  assert.deepEqual(spawned.args, ['--working-directory=' + deepDir])
+  assert.match(r2.text, /kind=file/)
+
+  // failures come back as structured text, never throw
+  const r3 = await wsOpen.execute({ path: deepFile, target: 'nope' })
+  assert.equal(r3.ok, false)
+  assert.match(r3.text, /unknown target/)
+  const r4 = await wsOpen.execute({ path: join(tmp, 'gone.txt') })
+  assert.equal(r4.ok, false)
+  assert.match(r4.text, /Failed to open/)
+
+  // with no launcher on PATH and no stored default it says so plainly
+  mod._setInternals({
+    platform: 'linux',
+    pathEnv: '/nowhere',
+    launchSettleMs: 5,
+    spawn(bin, args, options) {
+      spawned = { bin, args, options }
+      return { once() {}, unref() {} }
+    },
+  })
+  mod.resetDetectCache()
+  const r5 = await wsOpen.execute({ path: projectDir })
+  assert.equal(r5.ok, false)
+  assert.match(r5.text, /No supported launcher/)
+
+  // restore for any later assertions
+  mod._setInternals({
+    platform: 'linux',
+    pathEnv: fakeBin + ':/nowhere',
+    launchSettleMs: 5,
+    spawn(bin, args, options) {
+      spawned = { bin, args, options }
+      return { once() {}, unref() {} }
+    },
+  })
+  mod.resetDetectCache()
 }
 
 console.log('host.test.mjs: all assertions passed')
