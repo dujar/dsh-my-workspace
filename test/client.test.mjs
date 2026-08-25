@@ -76,6 +76,25 @@ assert.equal(
 assert.equal(mod.resolveWorkspacePath('', wsList), null)
 assert.equal(mod.resolveWorkspacePath('x', undefined), null)
 
+// Session-cwd fallback: a row label matches exactly one distinct cwd basename.
+const sessions = {
+  s1: { cwd: '/work/hermes' },
+  s2: { cwd: '/work/hermes' },
+  s3: { cwd: '/deep/My Project' },
+  s4: { cwd: null },
+}
+assert.equal(mod.resolveWorkspacePathFromSessions('hermes', sessions), '/work/hermes', 'duplicate cwds collapse')
+assert.equal(mod.resolveWorkspacePathFromSessions('My Project', sessions), '/deep/My Project')
+assert.equal(mod.resolveWorkspacePathFromSessions('project', sessions), null, 'basename must match exactly')
+assert.equal(mod.resolveWorkspacePathFromSessions('nope', sessions), null)
+assert.equal(
+  mod.resolveWorkspacePathFromSessions('amb', { a: { cwd: '/x/amb' }, b: { cwd: '/y/amb' } }),
+  null,
+  'two different dirs with one basename stay unresolved',
+)
+assert.equal(mod.resolveWorkspacePathFromSessions('', sessions), null)
+assert.equal(mod.resolveWorkspacePathFromSessions('hermes', undefined), null)
+
 // Settings-nav glyph patch wiring: exported matcher + mount lifecycle.
 assert.equal(typeof mod.mountSettingsNavGlyph, 'function')
 assert.equal(typeof mod.isWorkspaceNavLabel, 'function')
