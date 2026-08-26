@@ -340,13 +340,25 @@ for (const [name, body, code] of [
 
   // With one, only the id/title/path leaves are exposed, entries without a
   // path are skipped, ids are coerced to strings, and output sorts by title.
-  const wsRoutes = mount(() => ({
+  // The registry resolves lazily per request: the real service finishes its
+  // bootstrap only after apply() (it waits on storageDomain +
+  // sessionPersistence), so a registry that appears later must be listed —
+  // capturing it at apply time froze `undefined` and every click on a
+  // sidebar row degraded to "Workspace path not found."
+  let registry = undefined
+  const wsRoutes = mount(() => registry)
+  const early = fakeRes()
+  await wsRoutes['/dsh-my-workspace/workspaces'].handler(mkReq('GET', local, '/dsh-my-workspace/workspaces'), early)
+  assert.equal(early.status, 200)
+  assert.deepEqual(JSON.parse(early.body), { workspaces: [] }, 'registry not yet started reads as empty')
+
+  registry = {
     list: () => [
       { id: 7, title: 'zebra', path: '/work/zebra' },
       { id: 'abc', title: 'alpha', path: '/work/alpha', createdAt: 1, updatedAt: 2, sessionIds: ['s1'], record: { secret: true } },
       { id: 'x', title: 'no-path' },
     ],
-  }))
+  }
   const res2 = fakeRes()
   await wsRoutes['/dsh-my-workspace/workspaces'].handler(mkReq('GET', local, '/dsh-my-workspace/workspaces'), res2)
   assert.equal(res2.status, 200)
